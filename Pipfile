@@ -5,6 +5,7 @@ verify_ssl = true
 
 [packages]
 requests = "==2.21.0"
+sepaxml  = "==2.2.0"
 
 [requires]
 python_version = "3.7"

@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from http import HTTPStatus
 from time import mktime
 from urllib.parse import urlencode
+from sepaxml import SepaTransfer
 
 import requests
 
@@ -13,6 +14,7 @@ from . import PaymentException
 
 # DEFAULT_BASE_API_URL = 'https://api.trustpay.eu/api/oauth2/token'
 DEFAULT_BASE_API_URL = 'https://api.trustpay.eu'
+SUPPORTED_CURRENCIES = ['EUR']
 
 
 # https://doc.trustpay.eu/?curl&ShowAPIBanking=true
@@ -126,40 +128,49 @@ class Trustpay:
         headers = self._prepare_headers(with_access_token=False)
 
         result = self._send_request(endpoint, data, headers, urlencode)
-        print(result)
-        # save token ttl
-        # self.access_token_expiration_time = datetime.now() + timedelta(seconds=result["expires-in"])
         return result["access_token"]
 
-    def account_details(self):
+    def account_details(self) -> dict:
+        '''
+
+        API Response example:
+        {
+            'AccountDetails': {
+                'AccountId': 2107920199,
+                'IBAN': 'SK1799329999999999999999',
+                'AccountName': 'SOME NAME',
+                'AccountOwnerName': 'SOME MORE NAME',
+                'AccountType': 'Individual',
+                'CanCreateInternalOrder': True,
+                'CanCreateBankWireOrder': True,
+                'CurrencyCode': 'EUR',
+                'AccountingBalance': '9999.99',
+                'DisposableBalance': '8888.88',
+                'FeeBalance': '4.50',
+                'MinimalBalance': '200.00'
+            }
+        }
+        '''
         endpoint = '/ApiBanking/GetAccountDetails'
-        data = {'AccountId': self.username}
+        data = {'AccountId': self.aid}
         headers = self._prepare_headers()
         result = self._send_request(endpoint, data, headers, json.dumps)
-        return result
+        return result['AccountDetails']
 
-    # def get_balance(self) -> dict:
-    #     '''
-    #     Response example: {
-    #         'available_balance': '4063.27',
-    #         'reservations': 0,
-    #         'real_balance': 4063.27}
-    #     '''
-    #     endpoint = '/v1/transaction/getBalance'
-    #
-    #     data = {
-    #         "username": self.username}
-    #
-    #     result = self._send_request(endpoint, data)
-    #
-    #     return result
-
-    def send_money(self, amount: float, currency: str, recipient: str, account: str,
-                   details: str) -> dict:
+    def send_money(
+            self,
+            amount: int,
+            currency: str,
+            recipient: str,
+            account: str,
+            bank_bik:str,
+            details: str
+    ) -> dict:
         '''
         Transfer money from merchant account to recipient account
+        https://doc.trustpay.eu/?php#ab-create-order
 
-        :param amount: Amount of money
+        :param amount: Amount of money in cents
         :param currency: Currency (only EUR is available)
         :param recipient: Name of the recipient
         :param account: IBAN account number of recipient
@@ -176,24 +187,41 @@ class Trustpay:
             "data": "string",
             "duration": 0}
         '''
-        endpoint = '/v1/transaction/sendMoney'
         if currency not in SUPPORTED_CURRENCIES:
             # TODO: raise relevant error instead default
             raise AttributeError(
                 'Currency not supported. Please use any from this list: {}'.format(
                     SUPPORTED_CURRENCIES))
 
-        data = {
-            "username": self.username,
-            "amount": amount,
-            "currency": currency,
-            "recipient": recipient,
-            "account": account,
-            "details": details}
+        endpoint = '/ApiBanking/CreateOrder'
+
+        account_details = self.account_details()
+
+        config = {
+            "name": account_details['AccountName'],
+            "IBAN": account_details['IBAN'],
+            "BIC": "BANKNL2A", # TODO: get BIK code ?????
+            "batch": True,
+            "currency": account_details['CurrencyCode'],  # ISO 4217
+        }
+        sepa = SepaTransfer(config, clean=True)
+
+        payment = {
+            "name": recipient,
+            "IBAN": account,
+            "BIC": bank_bik,
+            "amount": amount,  # in cents
+            "execution_date": datetime.today(),
+            "description": details,
+            # "endtoend_id": str(uuid.uuid1())  # optional
+        }
+        sepa.add_payment(payment)
+
+        data = sepa.export(validate=True)
 
         headers = self._prepare_headers()
 
         # TODO: error handling
-        result = self._send_request(endpoint, data, headers)
+        result = self._send_request(endpoint, data.decode(), headers, json.dumps)
 
         return result
