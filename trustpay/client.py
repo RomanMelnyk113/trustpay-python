@@ -2,7 +2,7 @@ import base64
 import hashlib
 import hmac
 import json
-from datetime import datetime, timedelta
+from datetime import date, timedelta
 from http import HTTPStatus
 from time import mktime
 from urllib.parse import urlencode
@@ -36,8 +36,6 @@ class Trustpay:
 
     # access token
     access_token: str = None
-
-    access_token_expiration_time: datetime
 
     def __init__(self, password, username, secret_key=None, aid=None, api_url=None):
         self.secret_key = secret_key
@@ -101,6 +99,8 @@ class Trustpay:
     def _send_request(self, endpoint: str, data: dict, headers: dict,
                       transform_data_func: callable):
         post_params = transform_data_func(data)
+        print("post_params")
+        print(post_params)
 
         r = requests.post(self._generate_url(endpoint), headers=headers, data=post_params)
         print(r.text)
@@ -196,12 +196,17 @@ class Trustpay:
         endpoint = '/ApiBanking/CreateOrder'
 
         account_details = self.account_details()
+        # account_details = {
+        #     "AccountName":"UCHA KIPIANI",
+        #     "IBAN":"LT083510001468166897",
+        #     "CurrencyCode":"EUR",
+        # }
 
         config = {
             "name": account_details['AccountName'],
             "IBAN": account_details['IBAN'],
-            "BIC": "BANKNL2A", # TODO: get BIK code ?????
-            "batch": True,
+            "BIC": "TPAYSKBX", # TODO: get BIK code ?????
+            "batch": False,
             "currency": account_details['CurrencyCode'],  # ISO 4217
         }
         sepa = SepaTransfer(config, clean=True)
@@ -211,17 +216,19 @@ class Trustpay:
             "IBAN": account,
             "BIC": bank_bik,
             "amount": amount,  # in cents
-            "execution_date": datetime.today(),
+            "execution_date": date.today(),
             "description": details,
             # "endtoend_id": str(uuid.uuid1())  # optional
         }
         sepa.add_payment(payment)
 
         data = sepa.export(validate=True)
+        print(data)
 
         headers = self._prepare_headers()
 
         # TODO: error handling
         result = self._send_request(endpoint, data.decode(), headers, json.dumps)
-
+        print(result)
+        print(result.text)
         return result
