@@ -2,12 +2,14 @@ import base64
 import hashlib
 import hmac
 import json
-from datetime import date, timedelta
+import uuid
+from datetime import date, datetime
 from http import HTTPStatus
 from time import mktime
 from typing import Optional
 from urllib.parse import urlencode
 from sepaxml import SepaTransfer
+from . import order_xml_string
 
 import requests
 
@@ -201,36 +203,52 @@ class Trustpay:
 
         account_details = self.account_details()
         # account_details = {
+        #     "AccountId":"121212121",
         #     "AccountName":"UCHA KIPIANI",
         #     "IBAN":"LT083510001468166897",
         #     "CurrencyCode":"EUR",
         # }
-
+        code = str(uuid.uuid4()).replace("-", "")[:12]
         config = {
-            "name": account_details['AccountName'],
-            "IBAN": account_details['IBAN'],
-            "BIC": "TPAYSKBX",  # TODO: get BIK code ?????
-            "batch": False,
-            "currency": account_details['CurrencyCode'],  # ISO 4217
+            "MessageId": f"{account_details['AccountId']}-{code}",
+            "CreationDateTime": datetime.today().isoformat().split('.')[0],
+            "RequestedExecutionDate": date.today().isoformat(),
+            "DebtorName": account_details['AccountName'],
+            "DebtorAccount": account_details['AccountId'],
+            "Currency": currency,
+            "Amount": amount,
+            "CreditorBankBic": bank_bik,
+            "CreditorName": recipient,
+            "CreditorAccount": account,
+            "Description": details,
         }
-        sepa = SepaTransfer(config, clean=True)
+        order_data = order_xml_string.format(**config)
+        print(order_data)
 
-        payment = {
-            "name": recipient,
-            "IBAN": account,
-            "BIC": bank_bik,
-            "amount": amount,  # in cents
-            "execution_date": date.today(),
-            "description": details,
-            # "endtoend_id": str(uuid.uuid1())  # optional
-        }
-        sepa.add_payment(payment)
-
-        data = sepa.export(validate=True)
+        # config = {
+        #     "name": account_details['AccountName'],
+        #     "IBAN": account_details['IBAN'],
+        #     "BIC": "TPAYSKBX",  # TODO: get BIK code ?????
+        #     "batch": False,
+        #     "currency": account_details['CurrencyCode'],  # ISO 4217
+        # }
+        # sepa = SepaTransfer(config, clean=True)
+        #
+        # payment = {
+        #     "name": recipient,
+        #     "IBAN": account,
+        #     "BIC": bank_bik,
+        #     "amount": amount,  # in cents
+        #     "execution_date": date.today(),
+        #     "description": details,
+        #     # "endtoend_id": str(uuid.uuid1())  # optional
+        # }
+        # sepa.add_payment(payment)
+        #
+        # data = sepa.export(validate=True)
         data_to_send = {
-            "Xml": data.decode()
+            "Xml": order_data
         }
-        print(data)
 
         headers = self._prepare_headers()
 
