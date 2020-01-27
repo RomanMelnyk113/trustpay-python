@@ -2,8 +2,7 @@ class PaymentException(Exception):
     pass
 
 
-order_xml_string = '''
-<?xml version="1.0" encoding="UTF-8"?>
+order_xml_string = '''<?xml version="1.0" encoding="UTF-8"?>
 <Document xmlns:xsd="http://www.w3.org/2001/XMLSchema"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03">
@@ -69,5 +68,4 @@ order_xml_string = '''
             </CdtTrfTxInf>
         </PmtInf>
     </CstmrCdtTrfInitn>
-</Document>
-'''
+</Document>'''

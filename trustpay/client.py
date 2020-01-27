@@ -201,13 +201,13 @@ class Trustpay:
 
         endpoint = '/ApiBanking/CreateOrder'
 
-        account_details = self.account_details()
-        # account_details = {
-        #     "AccountId":"121212121",
-        #     "AccountName":"UCHA KIPIANI",
-        #     "IBAN":"LT083510001468166897",
-        #     "CurrencyCode":"EUR",
-        # }
+        # account_details = self.account_details()
+        account_details = {
+            "AccountId": "121212121",
+            "AccountName": "UCHA KIPIANI",
+            "IBAN": "LT083510001468166897",
+            "CurrencyCode": "EUR",
+        }
         code = str(uuid.uuid4()).replace("-", "")[:12]
         config = {
             "MessageId": f"{account_details['AccountId']}-{code}",
@@ -222,7 +222,7 @@ class Trustpay:
             "CreditorAccount": account,
             "Description": details,
         }
-        order_data = order_xml_string.format(**config)
+        order_data = order_xml_string.format(**config).replace(" ", "").replace("\n", " ")
         print(order_data)
 
         # config = {
@@ -249,11 +249,11 @@ class Trustpay:
         data_to_send = {
             "Xml": order_data
         }
-
-        headers = self._prepare_headers()
+        return data_to_send
+        # headers = self._prepare_headers()
 
         # TODO: error handling
-        result = self._send_request(endpoint, data_to_send, headers, json.dumps)
-        print(result)
-        print(result.text)
+        # result = self._send_request(endpoint, data_to_send, headers, json.dumps)
+        # print(result)
+        # print(result.text)
         return result
