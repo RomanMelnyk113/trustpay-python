@@ -222,7 +222,7 @@ class Trustpay:
             "CreditorAccount": account,
             "Description": details,
         }
-        order_data = order_xml_string.format(**config).replace(" ", "").replace("\n", " ")
+        order_data = order_xml_string.format(**config).replace("\n", " ")
         print(order_data)
 
         # config = {
