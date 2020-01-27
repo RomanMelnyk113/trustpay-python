@@ -5,6 +5,7 @@ import json
 from datetime import date, timedelta
 from http import HTTPStatus
 from time import mktime
+from typing import Optional
 from urllib.parse import urlencode
 from sepaxml import SepaTransfer
 
@@ -97,8 +98,11 @@ class Trustpay:
         return self.api_url + endpoint
 
     def _send_request(self, endpoint: str, data: dict, headers: dict,
-                      transform_data_func: callable):
-        post_params = transform_data_func(data)
+                      transform_data_func: Optional[callable]):
+        if transform_data_func is not None:
+            post_params = transform_data_func(data)
+        else:
+            post_params = data
         print("post_params")
         print(post_params)
 
@@ -163,7 +167,7 @@ class Trustpay:
             currency: str,
             recipient: str,
             account: str,
-            bank_bik:str,
+            bank_bik: str,
             details: str
     ) -> dict:
         '''
@@ -205,7 +209,7 @@ class Trustpay:
         config = {
             "name": account_details['AccountName'],
             "IBAN": account_details['IBAN'],
-            "BIC": "TPAYSKBX", # TODO: get BIK code ?????
+            "BIC": "TPAYSKBX",  # TODO: get BIK code ?????
             "batch": False,
             "currency": account_details['CurrencyCode'],  # ISO 4217
         }
@@ -223,12 +227,15 @@ class Trustpay:
         sepa.add_payment(payment)
 
         data = sepa.export(validate=True)
+        data_to_send = {
+            "Xml": data.decode()
+        }
         print(data)
 
         headers = self._prepare_headers()
 
         # TODO: error handling
-        result = self._send_request(endpoint, data.decode(), headers, json.dumps)
+        result = self._send_request(endpoint, data_to_send, headers, json.dumps)
         print(result)
         print(result.text)
         return result
