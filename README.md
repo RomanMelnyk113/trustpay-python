@@ -5,7 +5,7 @@ Simple API client for the [Trustpay](https://www.trustpay.eu/) service.
 ## Usage
 
 ### Virtualenv
-You can use `pipenv` tool for development: 
- - create virtualenv: `pipenv --python /path/to/python`
- - install dependencies: `pipenv lock && pipenv install`
- - open virtualenv shell: `pipenv shell` (optional)
+You can use `poetry` tool for development:
+ - install `poetry` first 
+ - install dependencies: `poetry lock && poetry install`
+ - open virtualenv shell: `poetry shell` (optional)
