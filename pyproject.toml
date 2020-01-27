@@ -1,0 +1,11 @@
+[tool.poetry]
+name = "trustpay-python"
+version = "0.0.1"
+description = "Trustpay python unofficial package"
+authors = ["Roman Melnyk <roman.melnyk20071992@gmail.com>"]
+
+readme = "README.md"
+
+[tool.poetry.dependencies]
+requests = "==2.21.0"
+sepaxml  = "==2.2.0"

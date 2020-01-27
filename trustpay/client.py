@@ -103,7 +103,7 @@ class Trustpay:
         post_params = transform_data_func(data)
 
         r = requests.post(self._generate_url(endpoint), headers=headers, data=post_params)
-        print(r)
+        print(r.text)
         if r.status_code != HTTPStatus.OK:
             raise PaymentException('Trustpay error: {}'.format(r.text))
 
@@ -175,7 +175,7 @@ class Trustpay:
         :param recipient: Name of the recipient
         :param account: IBAN account number of recipient
         :param details: Details (description) of the transfer
-        :return: Mistertango API response
+        :return: Trustpay API response
 
         Example: {
             "status": true,
