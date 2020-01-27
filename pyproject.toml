@@ -7,5 +7,4 @@ authors = ["Roman Melnyk <roman.melnyk20071992@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-requests = "==2.21.0"
-sepaxml  = "==2.2.0"
+requests = "^2"

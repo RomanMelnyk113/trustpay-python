@@ -5,10 +5,8 @@ import json
 import uuid
 from datetime import date, datetime
 from http import HTTPStatus
-from time import mktime
 from typing import Optional
 from urllib.parse import urlencode
-from sepaxml import SepaTransfer
 from . import order_xml_string
 
 import requests
