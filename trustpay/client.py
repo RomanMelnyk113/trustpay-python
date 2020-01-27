@@ -105,9 +105,7 @@ class Trustpay:
             post_params = transform_data_func(data)
         else:
             post_params = data
-        print("post_params")
         print(post_params)
-
         r = requests.post(self._generate_url(endpoint), headers=headers, data=post_params)
         print(r.text)
         if r.status_code != HTTPStatus.OK:
@@ -171,7 +169,7 @@ class Trustpay:
             account: str,
             bank_bik: str,
             details: str
-    ) -> dict:
+    ) -> int:
         '''
         Transfer money from merchant account to recipient account
         https://doc.trustpay.eu/?php#ab-create-order
@@ -181,17 +179,12 @@ class Trustpay:
         :param recipient: Name of the recipient
         :param account: IBAN account number of recipient
         :param details: Details (description) of the transfer
-        :return: Trustpay API response
+        :return: OrderId
 
+        Trustpay API response
         Example: {
-            "status": true,
-            "api": {
-              "version": "string",
-              "title": "string"
-            },
-            "message": "string",
-            "data": "string",
-            "duration": 0}
+            "OrderId": 123123
+            }
         '''
         if currency not in SUPPORTED_CURRENCIES:
             # TODO: raise relevant error instead default
@@ -223,29 +216,7 @@ class Trustpay:
             "Description": details,
         }
         order_data = order_xml_string.format(**config).replace("\n", " ")
-        print(order_data)
 
-        # config = {
-        #     "name": account_details['AccountName'],
-        #     "IBAN": account_details['IBAN'],
-        #     "BIC": "TPAYSKBX",  # TODO: get BIK code ?????
-        #     "batch": False,
-        #     "currency": account_details['CurrencyCode'],  # ISO 4217
-        # }
-        # sepa = SepaTransfer(config, clean=True)
-        #
-        # payment = {
-        #     "name": recipient,
-        #     "IBAN": account,
-        #     "BIC": bank_bik,
-        #     "amount": amount,  # in cents
-        #     "execution_date": date.today(),
-        #     "description": details,
-        #     # "endtoend_id": str(uuid.uuid1())  # optional
-        # }
-        # sepa.add_payment(payment)
-        #
-        # data = sepa.export(validate=True)
         data_to_send = {
             "Xml": order_data
         }
@@ -254,6 +225,4 @@ class Trustpay:
 
         # TODO: error handling
         result = self._send_request(endpoint, data_to_send, headers, json.dumps)
-        print(result)
-        print(result.text)
-        return result
+        return result['OrderId']
