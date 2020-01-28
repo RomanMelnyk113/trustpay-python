@@ -97,8 +97,13 @@ class Trustpay:
     def _generate_url(self, endpoint):
         return self.api_url + endpoint
 
-    def _send_request(self, endpoint: str, data: dict, headers: dict,
-                      transform_data_func: Optional[callable]):
+    def _send_request(
+            self,
+            endpoint: str,
+            data: dict,
+            headers: dict,
+            transform_data_func: Optional[callable]
+    ):
         if transform_data_func is not None:
             post_params = transform_data_func(data)
         else:
@@ -107,7 +112,8 @@ class Trustpay:
         r = requests.post(self._generate_url(endpoint), headers=headers, data=post_params)
         print(r.text)
         if r.status_code != HTTPStatus.OK:
-            raise PaymentException('Trustpay error: {}'.format(r.text))
+            raise PaymentException(
+                'Trustpay error: {}. Error code: {}'.format(r.text, r.status_code))
 
         return json.loads(r.text)
 
@@ -167,7 +173,7 @@ class Trustpay:
             account: str,
             bank_bik: str,
             details: str
-    ) -> int:
+    ) -> dict:
         '''
         Transfer money from merchant account to recipient account
         https://doc.trustpay.eu/?php#ab-create-order
@@ -193,12 +199,6 @@ class Trustpay:
         endpoint = '/ApiBanking/CreateOrder'
 
         account_details = self.account_details()
-        # account_details = {
-        #     "AccountId": "121212121",
-        #     "AccountName": "ASD TEST",
-        #     "IBAN": "CZ083610001468166898",
-        #     "CurrencyCode": "EUR",
-        # }
         code = str(uuid.uuid4()).replace("-", "")[:12]
         config = {
             "MessageId": f"{account_details['AccountId']}-{code}",
@@ -218,9 +218,7 @@ class Trustpay:
         data_to_send = {
             "Xml": order_data
         }
-        # return data_to_send
         headers = self._prepare_headers()
 
         # TODO: error handling
-        result = self._send_request(endpoint, data_to_send, headers, json.dumps)
-        return result['OrderId']
+        return self._send_request(endpoint, data_to_send, headers, json.dumps)
