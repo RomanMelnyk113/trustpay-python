@@ -167,18 +167,18 @@ class Trustpay:
 
     def send_money(
             self,
-            amount: int,
+            amount: float,
             currency: str,
             recipient: str,
             account: str,
-            bank_bik: str,
-            details: str
+            details: str,
+            bank_bik: str = "NOTPROVIDED"
     ) -> dict:
         '''
         Transfer money from merchant account to recipient account
         https://doc.trustpay.eu/?php#ab-create-order
 
-        :param amount: Amount of money in cents
+        :param amount: Amount of money
         :param currency: Currency (only EUR is available)
         :param recipient: Name of the recipient
         :param account: IBAN account number of recipient
