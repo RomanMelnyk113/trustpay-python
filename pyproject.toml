@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "trustpay-python"
+name = "trustpay"
 version = "0.0.1"
 description = "Trustpay python unofficial package"
 authors = ["Roman Melnyk <roman.melnyk20071992@gmail.com>"]
