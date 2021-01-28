@@ -49,12 +49,12 @@ setup(
         'Topic :: Software Development :: Libraries',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
     ],
 
     keywords='trustpay payment python',
     packages=['trustpay'],
 
     install_requires=['requests'],
-
-    python_requires='>=3.5',
 )
