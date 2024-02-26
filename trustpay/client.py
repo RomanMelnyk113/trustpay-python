@@ -3,6 +3,8 @@ import hashlib
 import hmac
 import json
 import uuid
+import logging
+
 from datetime import date, datetime
 from http import HTTPStatus
 from typing import Optional
@@ -14,8 +16,10 @@ import requests
 from . import PaymentException
 
 # DEFAULT_BASE_API_URL = 'https://api.trustpay.eu/api/oauth2/token'
-DEFAULT_BASE_API_URL = 'https://api.trustpay.eu'
-SUPPORTED_CURRENCIES = ['EUR']
+DEFAULT_BASE_API_URL = "https://api.trustpay.eu"
+SUPPORTED_CURRENCIES = ["EUR"]
+
+logger = logging.getLogger(__name__)
 
 
 # https://doc.trustpay.eu/?curl&ShowAPIBanking=true
@@ -38,7 +42,12 @@ class Trustpay:
     # access token
     access_token: str = None
 
-    def __init__(self, password, username, secret_key=None, aid=None, api_url=None):
+    # debug
+    debug: bool = False
+
+    def __init__(
+        self, password, username, secret_key=None, aid=None, api_url=None, debug=False
+    ):
         self.secret_key = secret_key
         self.aid = aid
         self.password = password
@@ -47,6 +56,7 @@ class Trustpay:
         self.api_url = api_url or DEFAULT_BASE_API_URL
 
         self.access_token = self.get_access_token()
+        self.debug = debug
 
     def create_merchant_signature(self, aid, amount, currency, reference):
         # A message is created as concatenation of parameter values in this specified order:
@@ -81,55 +91,60 @@ class Trustpay:
         if with_access_token:
             access_token = self.get_access_token()
             authorization = f"bearer {access_token}"
-            return {
-                'Authorization': authorization,
-                'Content-Type': 'text/json'
-            }
+            return {"Authorization": authorization, "Content-Type": "text/json"}
 
         base_auth = base64.b64encode(f"{self.username}:{self.password}".encode("utf-8"))
         authorization = f"Basic {base_auth.decode()}"
 
         return {
-            'Authorization': authorization,
-            'Content-Type': 'application/x-www-form-urlencoded'
+            "Authorization": authorization,
+            "Content-Type": "application/x-www-form-urlencoded",
         }
 
     def _generate_url(self, endpoint):
         return self.api_url + endpoint
 
     def _send_request(
-            self,
-            endpoint: str,
-            data: dict,
-            headers: dict,
-            transform_data_func: Optional[callable]
+        self,
+        endpoint: str,
+        data: dict,
+        headers: dict,
+        transform_data_func: Optional[callable],
     ):
         if transform_data_func is not None:
             post_params = transform_data_func(data)
         else:
             post_params = data
-        print(post_params)
-        r = requests.post(self._generate_url(endpoint), headers=headers, data=post_params)
-        print(r.text)
+
+        if self.debug:
+            logger.info(
+                f"Trustpay request: url={self._generate_url(endpoint)}; body={post_params}"
+            )
+        r = requests.post(
+            self._generate_url(endpoint), headers=headers, data=post_params
+        )
+        if self.debug:
+            logger.info(f"Trustpay reponse: {r.text}")
         if r.status_code != HTTPStatus.OK:
             raise PaymentException(
-                'Trustpay error: {}. Error code: {}'.format(r.text, r.status_code))
+                "Trustpay error: {}. Error code: {}".format(r.text, r.status_code)
+            )
 
         return json.loads(r.text)
 
     def get_access_token(self) -> str:
-        '''
+        """
         API Response example: {
             "access_token":"L3_DbiQdateYLPYmp31AHEeErRzF84SVRcyr5Zw4jgw3CqDZjn4dbmVilTQx6dh_8ZbPztJGQh-9",
             "token-type":"bearer",
         }
 
         :return access_token:str
-        '''
+        """
         if self.access_token:
             return self.access_token
 
-        endpoint = '/api/oauth2/token'
+        endpoint = "/api/oauth2/token"
 
         data = {"grant_type": "client_credentials"}
 
@@ -139,7 +154,7 @@ class Trustpay:
         return result["access_token"]
 
     def account_details(self) -> dict:
-        '''
+        """
 
         API Response example:
         {
@@ -158,23 +173,23 @@ class Trustpay:
                 'MinimalBalance': '200.00'
             }
         }
-        '''
-        endpoint = '/ApiBanking/GetAccountDetails'
-        data = {'AccountId': self.aid}
+        """
+        endpoint = "/ApiBanking/GetAccountDetails"
+        data = {"AccountId": self.aid}
         headers = self._prepare_headers()
         result = self._send_request(endpoint, data, headers, json.dumps)
-        return result['AccountDetails']
+        return result["AccountDetails"]
 
     def send_money(
-            self,
-            amount: float,
-            currency: str,
-            recipient: str,
-            account: str,
-            details: str,
-            bank_bik: str = "NOTPROVIDED"
+        self,
+        amount: float,
+        currency: str,
+        recipient: str,
+        account: str,
+        details: str,
+        bank_bik: str = "NOTPROVIDED",
     ) -> dict:
-        '''
+        """
         Transfer money from merchant account to recipient account
         https://doc.trustpay.eu/?php#ab-create-order
 
@@ -189,23 +204,25 @@ class Trustpay:
         Example: {
             "OrderId": 123123
             }
-        '''
+        """
         if currency not in SUPPORTED_CURRENCIES:
             # TODO: raise relevant error instead default
             raise AttributeError(
-                'Currency not supported. Please use any from this list: {}'.format(
-                    SUPPORTED_CURRENCIES))
+                "Currency not supported. Please use any from this list: {}".format(
+                    SUPPORTED_CURRENCIES
+                )
+            )
 
-        endpoint = '/ApiBanking/CreateOrder'
+        endpoint = "/ApiBanking/CreateOrder"
 
         account_details = self.account_details()
         code = str(uuid.uuid4()).replace("-", "")[:12]
         config = {
             "MessageId": f"{account_details['AccountId']}-{code}",
-            "CreationDateTime": datetime.today().isoformat().split('.')[0],
+            "CreationDateTime": datetime.today().isoformat().split(".")[0],
             "RequestedExecutionDate": date.today().isoformat(),
-            "DebtorName": account_details['AccountName'],
-            "DebtorAccount": account_details['AccountId'],
+            "DebtorName": account_details["AccountName"],
+            "DebtorAccount": account_details["AccountId"],
             "Currency": currency,
             "Amount": amount,
             "CreditorBankBic": bank_bik,
@@ -215,9 +232,7 @@ class Trustpay:
         }
         order_data = order_xml_string.format(**config).replace("\n", " ")
 
-        data_to_send = {
-            "Xml": order_data
-        }
+        data_to_send = {"Xml": order_data}
         headers = self._prepare_headers()
 
         # TODO: error handling
