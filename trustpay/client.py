@@ -4,6 +4,7 @@ import hmac
 import json
 import uuid
 import logging
+import requests
 
 from datetime import date, datetime
 from http import HTTPStatus
@@ -11,7 +12,6 @@ from typing import Optional
 from urllib.parse import urlencode
 from . import order_xml_string
 
-import requests
 
 from . import PaymentException
 
@@ -26,6 +26,9 @@ logger = logging.getLogger(__name__)
 class Trustpay:
     # account ID
     aid: str
+    
+    # project ID
+    pid: str
 
     # secret key
     secret_key: str
@@ -237,3 +240,61 @@ class Trustpay:
 
         # TODO: error handling
         return self._send_request(endpoint, data_to_send, headers, json.dumps)
+    
+    def create_card_payment(
+        self,
+        amount: float,
+        currency: str,
+        debtor_name: str,
+        debtor_address: dict,
+        merchant_reference: str,
+        notification_url: str,
+        success_url: str,
+        error_url: str,
+    ) -> dict:
+        """
+        Create a card payment request to Trustpay.
+
+        :param amount: Amount of money
+        :param currency: Currency (only EUR is available)
+        :param debtor_name: Name of the debtor
+        :param debtor_address: Address of the debtor
+        :param merchant_reference: Merchant reference for the payment
+        :param notification_url: Callback URL for notifications
+        :return: Response from Trustpay API
+        """
+        endpoint = "/api/Payments/Payment"
+
+        payload = {
+            "PaymentMethod": "Card",
+            "MerchantIdentification": {
+                "ProjectId": self.aid  # Assuming pid is the project ID
+            },
+            "PaymentInformation": {
+                "Amount": {
+                    "Amount": amount,
+                    "Currency": currency
+                },
+                "IsRedirect": True,
+                "Localization": "EN",
+                "References": {
+                    "MerchantReference": merchant_reference
+                },
+                "CardTransaction": {
+                    "PaymentType": "Purchase"
+                }
+            },
+            "CallbackUrls": {
+                "Notification": notification_url,
+                "Success": success_url,
+                "Error": error_url
+            }
+        }
+        if debtor_address:
+            payload["PaymentInformation"]["Debtor"]["Address"] = debtor_address
+            
+        if debtor_name:
+            payload["PaymentInformation"]["Debtor"]["Name"] = debtor_name
+
+        headers = self._prepare_headers()
+        return self._send_request(endpoint, payload, headers, json.dumps)
