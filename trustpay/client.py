@@ -243,6 +243,7 @@ class Trustpay:
     
     def create_card_payment(
         self,
+        code: str,
         amount: float,
         currency: str,
         merchant_reference: str,
@@ -264,7 +265,7 @@ class Trustpay:
         endpoint = "/api/Payments/Payment"
 
         payload = {
-            "PaymentMethod": "Card",
+            "PaymentMethod": code,
             "MerchantIdentification": {
                 "ProjectId": self.aid  # Assuming pid is the project ID
             },
