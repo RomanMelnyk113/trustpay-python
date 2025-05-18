@@ -245,8 +245,6 @@ class Trustpay:
         self,
         amount: float,
         currency: str,
-        debtor_name: str,
-        debtor_address: dict,
         merchant_reference: str,
         notification_url: str,
         success_url: str,
@@ -290,11 +288,6 @@ class Trustpay:
                 "Error": error_url
             }
         }
-        if debtor_address:
-            payload["PaymentInformation"]["Debtor"]["Address"] = debtor_address
-            
-        if debtor_name:
-            payload["PaymentInformation"]["Debtor"]["Name"] = debtor_name
 
         headers = self._prepare_headers()
         return self._send_request(endpoint, payload, headers, json.dumps)
