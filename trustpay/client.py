@@ -290,7 +290,7 @@ class Trustpay:
                 "Error": error_url
             }
         }
-        if code.lower() == "trustly":
+        if code.lower() == "trustly".lower():
             payload["PaymentInformation"]["Country"] = kwargs.get("country", "US")
             payload["PaymentInformation"]["Debtor"] = {
                 "FirstName": kwargs.get("first_name", ""),
@@ -298,6 +298,10 @@ class Trustpay:
                 "Identification": {
                     "Id": kwargs.get("email", ""),
                 },
+                "Email": kwargs.get("email", ""),
+            }
+        if code.lower() == "InstantBankTransferFI".lower():
+            payload["PaymentInformation"]["Debtor"] = {
                 "Email": kwargs.get("email", ""),
             }
 
