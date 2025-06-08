@@ -295,7 +295,9 @@ class Trustpay:
             payload["PaymentInformation"]["Debtor"] = {
                 "FirstName": kwargs.get("first_name", ""),
                 "LastName": kwargs.get("last_name", ""),
-                "Identification": kwargs.get("email", ""),
+                "Identification": {
+                    "Id": kwargs.get("email", ""),
+                },
                 "Email": kwargs.get("email", ""),
             }
 
