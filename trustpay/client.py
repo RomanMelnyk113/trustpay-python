@@ -241,7 +241,7 @@ class Trustpay:
         # TODO: error handling
         return self._send_request(endpoint, data_to_send, headers, json.dumps)
     
-    def create_card_payment(
+    def create_payment(
         self,
         code: str,
         amount: float,
@@ -250,6 +250,7 @@ class Trustpay:
         notification_url: str,
         success_url: str,
         error_url: str,
+        **kwargs
     ) -> dict:
         """
         Create a card payment request to Trustpay.
@@ -279,9 +280,9 @@ class Trustpay:
                 "References": {
                     "MerchantReference": merchant_reference
                 },
-                "CardTransaction": {
-                    "PaymentType": "Purchase"
-                }
+                # "CardTransaction": {
+                #     "PaymentType": "Purchase"
+                # }
             },
             "CallbackUrls": {
                 "Notification": notification_url,
@@ -289,6 +290,14 @@ class Trustpay:
                 "Error": error_url
             }
         }
+        if code.lower() == "trustly":
+            payload["PaymentInformation"]["Country"] = kwargs.get("country", "US")
+            payload["PaymentInformation"]["Debtor"] = {
+                "FirstName": kwargs.get("first_name", ""),
+                "LastName": kwargs.get("last_name", ""),
+                "Identification": kwargs.get("email", ""),
+                "Email": kwargs.get("email", ""),
+            }
 
         headers = self._prepare_headers()
         return self._send_request(endpoint, payload, headers, json.dumps)
