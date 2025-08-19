@@ -307,3 +307,78 @@ class Trustpay:
 
         headers = self._prepare_headers()
         return self._send_request(endpoint, payload, headers, json.dumps)
+    
+    def refund_payment(
+        self,
+        amount: float,
+        currency: str,
+        reference: str,
+        payment_request_id: int,
+        notification_url: str = None,
+    ) -> dict:
+        """
+        Refund a previously processed payment
+        
+        :param amount: Amount to refund (must not exceed original payment amount)
+        :param currency: Currency of the refund (same as original payment)
+        :param reference: Reference for the refund transaction
+        :param payment_request_id: Payment request ID from the original transaction
+        :param notification_url: Optional notification URL for refund status
+        :return: Dictionary with refund result
+        
+        Example response:
+        {
+            "ResultCode": 0
+        }
+        """
+        if currency not in SUPPORTED_CURRENCIES:
+            raise AttributeError(
+                "Currency not supported. Please use any from this list: {}".format(
+                    SUPPORTED_CURRENCIES
+                )
+            )
+
+        endpoint = "/mapi5/Wire/PayPopup"
+        payment_type = 8  # Payment type for refunds
+        
+        # Create signature for refund (includes PaymentRequestId)
+        # Format: AccountId/Amount/Currency/Reference/PaymentType/PaymentRequestId
+        signature_data = f"{self.aid}/{amount:.2f}/{currency}/{reference}/{payment_type}/{payment_request_id}"
+        message = signature_data.encode("utf-8")
+        signature = self.sign(message)
+        
+        # Prepare refund data
+        data = {
+            "AccountId": self.aid,
+            "Amount": f"{amount:.2f}",
+            "Currency": currency,
+            "Reference": reference,
+            "PaymentType": payment_type,
+            "PaymentRequestId": payment_request_id,
+            "Signature": signature,
+        }
+        
+        if notification_url:
+            data["NotificationUrl"] = notification_url
+            
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+        }
+        
+        if self.debug:
+            logger.info(f"Trustpay refund request: {data}")
+            
+        # Use requests directly since this is a background call, not a redirect
+        r = requests.post(
+            self._generate_url(endpoint), headers=headers, data=data
+        )
+        
+        if self.debug:
+            logger.info(f"Trustpay refund response: {r.text}")
+            
+        if r.status_code != HTTPStatus.OK:
+            raise PaymentException(
+                "Trustpay refund error: {}. Error code: {}".format(r.text, r.status_code)
+            )
+
+        return json.loads(r.text)
