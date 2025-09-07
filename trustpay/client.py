@@ -346,7 +346,7 @@ class Trustpay:
             )
 
         suffix = "Refund"
-        if not is_sepa:
+        if is_sepa:
             suffix = "Cancel"
 
         # Use Acceptance API endpoint for refunds with PaymentRequestId in URL
