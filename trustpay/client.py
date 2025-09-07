@@ -317,18 +317,24 @@ class Trustpay:
         notification_url: str = None,
     ) -> dict:
         """
-        Refund a previously processed payment
+        Refund a previously processed payment using TrustPay Acceptance API
+        
+        Uses the endpoint: POST /api/Payments/Payment/{PaymentRequestId}/Refund
         
         :param amount: Amount to refund (must not exceed original payment amount)
         :param currency: Currency of the refund (same as original payment)
         :param reference: Reference for the refund transaction
-        :param payment_request_id: Payment request ID from the original transaction
+        :param payment_request_id: Payment request ID from the original transaction (used in URL path)
         :param notification_url: Optional notification URL for refund status
         :return: Dictionary with refund result
         
         Example response:
         {
-            "ResultCode": 0
+            "ResultInfo": {
+                "ResultCode": 1001000,
+                "CorrelationId": "12345678-1234-1234-1234-123456789012",
+                "AdditionalInfo": "Refund processed successfully"
+            }
         }
         """
         if currency not in SUPPORTED_CURRENCIES:
@@ -338,47 +344,34 @@ class Trustpay:
                 )
             )
 
-        endpoint = "/mapi5/Wire/PayPopup"
-        payment_type = 8  # Payment type for refunds
+        # Use Acceptance API endpoint for refunds with PaymentRequestId in URL
+        endpoint = f"/api/Payments/Payment/{payment_request_id}/Refund"
         
-        # Create signature for refund (includes PaymentRequestId)
-        # Format: AccountId/Amount/Currency/Reference/PaymentType/PaymentRequestId
-        signature_data = f"{self.aid}/{amount:.2f}/{currency}/{reference}/{payment_type}/{payment_request_id}"
-        message = signature_data.encode("utf-8")
-        signature = self.sign(message)
-        
-        # Prepare refund data
-        data = {
-            "AccountId": self.aid,
-            "Amount": f"{amount:.2f}",
-            "Currency": currency,
-            "Reference": reference,
-            "PaymentType": payment_type,
-            "PaymentRequestId": payment_request_id,
-            "Signature": signature,
+        # Prepare refund payload according to Acceptance API specification
+        payload = {
+            "MerchantIdentification": {
+                "ProjectId": int(self.aid)
+            },
+            "Amount": {
+                "Amount": amount,
+                "Currency": currency
+            },
+            "References": {
+                "MerchantReference": reference
+            }
         }
         
         if notification_url:
-            data["NotificationUrl"] = notification_url
-            
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded",
-        }
+            payload["CallbackUrls"] = {
+                "Notification": notification_url
+            }
+        
+        # Use OAuth Bearer token authentication
+        headers = self._prepare_headers(with_access_token=True)
+        headers["Content-Type"] = "application/json"
         
         if self.debug:
-            logger.info(f"Trustpay refund request: {data}")
+            logger.info(f"Trustpay refund request: {payload}")
             
-        # Use requests directly since this is a background call, not a redirect
-        r = requests.post(
-            self._generate_url(endpoint), headers=headers, data=data
-        )
-        
-        if self.debug:
-            logger.info(f"Trustpay refund response: {r.text}")
-            
-        if r.status_code != HTTPStatus.OK:
-            raise PaymentException(
-                "Trustpay refund error: {}. Error code: {}".format(r.text, r.status_code)
-            )
-
-        return json.loads(r.text)
+        # Use the existing _send_request method with JSON payload
+        return self._send_request(endpoint, payload, headers, json.dumps)
