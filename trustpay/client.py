@@ -315,6 +315,7 @@ class Trustpay:
         reference: str,
         payment_request_id: int,
         notification_url: str = None,
+        is_sepa: bool = False
     ) -> dict:
         """
         Refund a previously processed payment using TrustPay Acceptance API
@@ -344,8 +345,12 @@ class Trustpay:
                 )
             )
 
+        suffix = "Refund"
+        if not is_sepa:
+            suffix = "Cancel"
+
         # Use Acceptance API endpoint for refunds with PaymentRequestId in URL
-        endpoint = f"/api/Payments/Payment/{payment_request_id}/Refund"
+        endpoint = f"/api/Payments/Payment/{payment_request_id}/{suffix}"
         
         # Prepare refund payload according to Acceptance API specification
         payload = {
