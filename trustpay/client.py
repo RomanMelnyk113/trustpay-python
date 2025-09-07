@@ -357,19 +357,16 @@ class Trustpay:
             "MerchantIdentification": {
                 "ProjectId": int(self.aid)
             },
-            "Amount": {
-                "Amount": amount,
-                "Currency": currency
+            "PaymentInformation": {
+                "Amount": {
+                    "Amount": amount,
+                    "Currency": currency
+                },
+                "References": {
+                    "MerchantReference": reference
+                },
             },
-            "References": {
-                "MerchantReference": reference
-            }
         }
-        
-        if notification_url:
-            payload["CallbackUrls"] = {
-                "Notification": notification_url
-            }
         
         # Use OAuth Bearer token authentication
         headers = self._prepare_headers(with_access_token=True)
