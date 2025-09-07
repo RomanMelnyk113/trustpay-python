@@ -355,16 +355,16 @@ class Trustpay:
         # Prepare refund payload according to Acceptance API specification
         payload = {
             "MerchantIdentification": {
-                "ProjectId": int(self.aid)
+                "ProjectId": int(self.pid)
             },
             "PaymentInformation": {
                 "Amount": {
                     "Amount": amount,
                     "Currency": currency
                 },
-                "References": {
-                    "MerchantReference": reference
-                },
+                # "References": {
+                #     "MerchantReference": reference
+                # },
             },
         }
         
