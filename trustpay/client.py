@@ -312,9 +312,7 @@ class Trustpay:
         self,
         amount: float,
         currency: str,
-        reference: str,
         payment_request_id: int,
-        notification_url: str = None,
         is_sepa: bool = False
     ) -> dict:
         """
@@ -355,7 +353,7 @@ class Trustpay:
         # Prepare refund payload according to Acceptance API specification
         payload = {
             "MerchantIdentification": {
-                "ProjectId": int(self.pid)
+                "ProjectId": int(self.aid)
             },
             "PaymentInformation": {
                 "Amount": {
